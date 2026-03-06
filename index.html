@@ -525,11 +525,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
       </div>
-
-      <div class="mode-switch">
-        <button id="modeAiBtn" class="mode-btn active" type="button">AI强相关</button>
-        <button id="modeAllBtn" class="mode-btn" type="button">全量</button>
-      </div>
     </nav>
 
     <!-- Language Tabs -->
@@ -570,7 +565,6 @@
     <script>
       // State
       let newsData = null;
-      let currentMode = 'ai';
       let currentLang = 'zh';
       let searchQuery = '';
       let selectedSite = '';
@@ -578,8 +572,6 @@
       // DOM Elements
       const searchInput = document.getElementById('searchInput');
       const siteSelect = document.getElementById('siteSelect');
-      const modeAiBtn = document.getElementById('modeAiBtn');
-      const modeAllBtn = document.getElementById('modeAllBtn');
       const langTabs = document.querySelectorAll('.lang-tab');
       const zhSection = document.getElementById('zh-section');
       const enSection = document.getElementById('en-section');
@@ -594,6 +586,8 @@
 
       // Format time
       function formatTime(timestamp) {
+        if (!timestamp) return '未知时间';
+
         const date = new Date(timestamp);
         const now = new Date();
         const diff = now - date;
@@ -645,9 +639,6 @@
       // Filter news
       function filterNews(items) {
         return items.filter(item => {
-          // Mode filter
-          if (currentMode === 'ai' && !item.is_ai_related) return false;
-
           // Site filter
           if (selectedSite && item.site_id !== selectedSite) return false;
 
@@ -770,20 +761,6 @@
 
       siteSelect.addEventListener('change', (e) => {
         selectedSite = e.target.value;
-        renderNews();
-      });
-
-      modeAiBtn.addEventListener('click', () => {
-        currentMode = 'ai';
-        modeAiBtn.classList.add('active');
-        modeAllBtn.classList.remove('active');
-        renderNews();
-      });
-
-      modeAllBtn.addEventListener('click', () => {
-        currentMode = 'all';
-        modeAllBtn.classList.add('active');
-        modeAiBtn.classList.remove('active');
         renderNews();
       });
 
