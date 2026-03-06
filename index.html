@@ -84,16 +84,6 @@
         font-weight: 600;
       }
 
-      /* Subtitle */
-      .subtitle {
-        background: var(--bg-white);
-        padding: 0.5rem 1.5rem;
-        font-size: 0.8125rem;
-        color: var(--text-muted);
-        text-align: center;
-        border-bottom: 1px solid var(--border);
-      }
-
       /* Controls */
       .controls {
         background: var(--bg-white);
@@ -360,35 +350,17 @@
       </div>
     </header>
 
-    <div class="subtitle">
-      聚合 8 个 AI/科技站点，实时追踪 24 小时内重要更新
-    </div>
-
     <nav class="controls">
       <div class="search-box">
         <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="search" id="searchInput" class="search-input" placeholder="搜索..." />
-      </div>
-
-      <div class="select-wrapper">
-        <select id="siteSelect" class="site-select">
-          <option value="">全部站点</option>
-        </select>
-        <svg class="select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <input type="search" id="searchInput" class="search-input" placeholder="搜索标题、来源..." />
       </div>
     </nav>
 
     <div class="category-tabs" id="categoryTabs">
       <button class="category-tab active" data-category="all">全部</button>
-      <button class="category-tab" data-category="news">新闻</button>
-      <button class="category-tab" data-category="tech">技术</button>
-      <button class="category-tab" data-category="tools">工具</button>
-      <button class="category-tab" data-category="research">研究</button>
-      <button class="category-tab" data-category="company">公司</button>
     </div>
 
     <main class="main-content">
@@ -410,8 +382,7 @@
       let selectedSite = '';
 
       const searchInput = document.getElementById('searchInput');
-      const siteSelect = document.getElementById('siteSelect');
-      const categoryTabs = document.querySelectorAll('.category-tab');
+      const categoryTabs = document.getElementById('categoryTabs');
       const newsList = document.getElementById('newsList');
       const resultCount = document.getElementById('resultCount');
       const sectionTitle = document.getElementById('sectionTitle');
@@ -419,27 +390,58 @@
       const sourceCount = document.getElementById('sourceCount');
       const updatedAt = document.getElementById('updatedAt');
 
-      // Category keywords
-      const categoryKeywords = {
-        news: ['新闻', '发布', '宣布', '推出', '上线', '发布', 'news', 'release', 'launch', 'announce'],
-        tech: ['技术', '模型', '算法', '训练', '推理', 'tech', 'model', 'algorithm', 'training', 'inference'],
-        tools: ['工具', '软件', '应用', '平台', 'API', 'tool', 'software', 'app', 'platform'],
-        research: ['研究', '论文', '实验', '发现', 'research', 'paper', 'study', 'experiment'],
-        company: ['公司', '融资', '收购', '合作', 'OpenAI', 'Google', 'Microsoft', 'company', 'funding', 'acquisition']
-      };
+      // Get unique sites as categories
+      let siteCategories = [];
 
-      // Categorize item
-      function categorizeItem(item) {
-        const title = (item.title_zh || item.title || item.title_en || '').toLowerCase();
+      function updateStats() {
+        totalItems.textContent = newsData.total_items.toLocaleString();
+        sourceCount.textContent = newsData.site_count;
+        updatedAt.textContent = new Date(newsData.generated_at).toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
 
-        for (const [category, keywords] of Object.entries(categoryKeywords)) {
-          for (const keyword of keywords) {
-            if (title.toLowerCase().includes(keyword.toLowerCase())) {
-              return category;
-            }
-          }
-        }
-        return 'news'; // Default
+        // Build category tabs from sites
+        buildCategoryTabs();
+      }
+
+      function buildCategoryTabs() {
+        // Get sites with data
+        const sitesWithItems = newsData.site_stats.filter(s => s.count > 0);
+        siteCategories = sitesWithItems.map(s => ({
+          id: s.site_id,
+          name: s.site_name,
+          count: s.count
+        }));
+
+        // Clear existing tabs
+        categoryTabs.innerHTML = '<button class="category-tab active" data-category="all">全部</button>';
+
+        // Add site tabs
+        siteCategories.forEach(site => {
+          const btn = document.createElement('button');
+          btn.className = 'category-tab';
+          btn.dataset.category = site.id;
+          btn.textContent = site.name;
+          categoryTabs.appendChild(btn);
+        });
+
+        // Add event listeners
+        categoryTabs.querySelectorAll('.category-tab').forEach(tab => {
+          tab.addEventListener('click', handleCategoryClick);
+        });
+      }
+
+      function handleCategoryClick(e) {
+        categoryTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.dataset.category;
+
+        // Find site name
+        const site = siteCategories.find(s => s.id === currentCategory);
+        sectionTitle.textContent = site ? site.name : '全部';
+
+        renderNews();
       }
 
       function formatTime(item) {
@@ -474,7 +476,6 @@
           console.log('Loaded:', newsData.total_items, 'items');
 
           updateStats();
-          populateSiteSelect();
           renderNews();
         } catch (error) {
           console.error('Failed to load:', error);
@@ -489,29 +490,54 @@
           hour: '2-digit',
           minute: '2-digit'
         });
+
+        // Build category tabs from sites
+        buildCategoryTabs();
       }
 
-      function populateSiteSelect() {
-        newsData.site_stats.forEach(site => {
-          if (site.count > 0) {
-            const option = document.createElement('option');
-            option.value = site.site_id;
-            option.textContent = `${site.site_name} (${site.count})`;
-            siteSelect.appendChild(option);
-          }
+      function buildCategoryTabs() {
+        // Get sites with data
+        const sitesWithItems = newsData.site_stats.filter(s => s.count > 0);
+        siteCategories = sitesWithItems.map(s => ({
+          id: s.site_id,
+          name: s.site_name,
+          count: s.count
+        }));
+
+        // Clear existing tabs
+        categoryTabs.innerHTML = '<button class="category-tab active" data-category="all">全部</button>';
+
+        // Add site tabs
+        siteCategories.forEach(site => {
+          const btn = document.createElement('button');
+          btn.className = 'category-tab';
+          btn.dataset.category = site.id;
+          btn.textContent = site.name;
+          categoryTabs.appendChild(btn);
         });
+
+        // Add event listeners
+        categoryTabs.querySelectorAll('.category-tab').forEach(tab => {
+          tab.addEventListener('click', handleCategoryClick);
+        });
+      }
+
+      function handleCategoryClick(e) {
+        categoryTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.dataset.category;
+
+        // Find site name
+        const site = siteCategories.find(s => s.id === currentCategory);
+        sectionTitle.textContent = site ? site.name : '全部';
+
+        renderNews();
       }
 
       function filterNews(items) {
         return items.filter(item => {
-          // Category filter
-          if (currentCategory !== 'all') {
-            const itemCategory = categorizeItem(item);
-            if (itemCategory !== currentCategory) return false;
-          }
-
-          // Site filter
-          if (selectedSite && item.site_id !== selectedSite) return false;
+          // Category filter (by site)
+          if (currentCategory !== 'all' && item.site_id !== currentCategory) return false;
 
           // Search filter
           if (searchQuery) {
@@ -519,7 +545,8 @@
             const titleZh = (item.title_zh || item.title || '').toLowerCase();
             const titleEn = (item.title_en || '').toLowerCase();
             const source = (item.source || '').toLowerCase();
-            return titleZh.includes(query) || titleEn.includes(query) || source.includes(query);
+            const siteName = (item.site_name || '').toLowerCase();
+            return titleZh.includes(query) || titleEn.includes(query) || source.includes(query) || siteName.includes(query);
           }
 
           return true;
@@ -576,31 +603,6 @@
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value;
         renderNews();
-      });
-
-      siteSelect.addEventListener('change', (e) => {
-        selectedSite = e.target.value;
-        renderNews();
-      });
-
-      categoryTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          categoryTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          currentCategory = tab.dataset.category;
-
-          const titles = {
-            all: '全部',
-            news: '新闻',
-            tech: '技术',
-            tools: '工具',
-            research: '研究',
-            company: '公司'
-          };
-          sectionTitle.textContent = titles[currentCategory] || '全部';
-
-          renderNews();
-        });
       });
 
       // Init
