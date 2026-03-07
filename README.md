@@ -88,6 +88,8 @@ python -m http.server 8080
 - Hacker News 热门博客
 - AI/技术领域优质内容源
 
+**来源**: [HN Popular Blogs 2025](https://gist.github.com/emschwartz/e6d2bf860ccc367fe37ff953ba6de66b#file-hn-popular-blogs-2025-opml)
+
 ### 自定义 RSS 订阅
 
 **方式 1: 覆盖默认订阅（推荐）**
