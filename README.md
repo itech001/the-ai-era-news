@@ -11,7 +11,7 @@
 - **8 个数据源聚合**:TechURLs, Buzzing, Info Flow, TopHub, Zeli, AI HubToday, AIbase, NewsNow
 - **24 小时滚动窗口**:只展示最近 24 小时内的 AI/科技新闻
 - **智能分类**:自动按新闻/技术/工具/研究/公司分类
-- **实时更新**:每 30 分钟自动抓取并部署
+- **实时更新**:每天自动抓取并部署
 - **双平台部署**:同时支持 GitHub Pages 和 Vercel CDN
 - **全球加速**:Vercel 提供 70+ 全球节点 CDN
 
@@ -20,8 +20,8 @@
 - **GitHub Pages**:https://itech001.github.io/the-ai-era/
 - **Vercel CDN**:https://the-ai-era.vercel.app
 - **国内访问**:https://www.theaiera.cn
-- **数据源**:8 个 AI/科技聚合网站
-- **更新频率**:每 30 分钟
+- **数据源**:8 个 AI/科技聚合网站 + Karpathy 推荐博客
+- **更新频率**:每天北京时间 6:30
 
 ## 本地运行
 
@@ -50,17 +50,23 @@ python -m http.server 8080
 三个独立 workflow:
 
 ### 1. 数据更新 (`.github/workflows/update-news.yml`)
-- **触发**:每 30 分钟(cron: `*/30 * * * *`)
+- **触发**:每天北京时间 6:30 (cron: `30 22 * * *`)
 - **任务**:抓取数据并提交到仓库
 - **权限**:`contents: write`
 
 ### 2. GitHub Pages 部署 (`.github/workflows/deploy-github-pages.yml`)
-- **触发**:每天北京时间 7:00 + 推送到 master + 手动触发
+- **触发**:
+  - 每天北京时间 7:00 (数据更新后)
+  - 推送到 master 分支时(数据更新后自动触发)
+  - 手动触发
 - **任务**:部署静态页面到 GitHub Pages
 - **权限**:`pages: write`, `id-token: write`
 
 ### 3. Vercel 部署 (`.github/workflows/deploy-vercel.yml`)
-- **触发**:每天北京时间 7:00 + 推送到 master + 手动触发
+- **触发**:
+  - 每天北京时间 7:00 (数据更新后)
+  - 推送到 master 分支时(数据更新后自动触发)
+  - 手动触发
 - **任务**:部署到 Vercel 全球 CDN
 - **权限**:需要 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
 
