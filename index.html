@@ -584,31 +584,72 @@
         }
       }
 
-      function buildCategoryTabs() {
-        // Get sites with data
-        const sitesWithItems = newsData.site_stats.filter(s => s.count > 0);
-        siteCategories = sitesWithItems.map(s => ({
-          id: s.site_id,
-          name: s.site_name,
-          count: s.count
-        }));
+      function filterNews(items) {
+        return items.filter(item => {
+          // Category filter (by site)
+          if (currentCategory !== 'all' && item.site_id !== currentCategory) return false;
 
-        // Clear existing tabs
-        categoryTabs.innerHTML = '<button class="category-tab active" data-category="all">全部</button>';
+          // Source filter
+          if (currentSource !== 'all' && item.source !== currentSource) return false;
 
-        // Add site tabs
-        siteCategories.forEach(site => {
-          const btn = document.createElement('button');
-          btn.className = 'category-tab';
-          btn.dataset.category = site.id;
-          btn.textContent = site.name;
-          categoryTabs.appendChild(btn);
+          // Search filter
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const titleZh = (item.title_zh || item.title || '').toLowerCase();
+            const titleEn = (item.title_en || '').toLowerCase();
+            const source = (item.source || '').toLowerCase();
+            const siteName = (item.site_name || '').toLowerCase();
+            return titleZh.includes(query) || titleEn.includes(query) || source.includes(query) || siteName.includes(query);
+          }
+
+          return true;
+        });
+      }
+
+      function createNewsCard(item) {
+        const card = document.createElement('article');
+        card.className = 'news-card';
+
+        const metaHtml = `
+          <div class="card-meta">
+            <span class="site-badge">${item.site_name}</span>
+            ${item.source ? `<span class="source-badge">${item.source}</span>` : ''}
+            <time class="time-badge">${formatTime(item)}</time>
+          </div>
+        `;
+
+        const titleZh = item.title_zh || item.title || '';
+        const titleEn = item.title_en || '';
+
+        let titleHtml = `<h3 class="card-title">${titleZh}</h3>`;
+        if (titleEn && titleEn !== titleZh) {
+          titleHtml += `<p class="card-title-en">${titleEn}</p>`;
+        }
+
+        card.innerHTML = metaHtml + titleHtml;
+
+        card.addEventListener('click', () => {
+          if (item.url) {
+            window.open(item.url, '_blank', 'noopener,noreferrer');
+          }
         });
 
-        // Add event listeners
-        categoryTabs.querySelectorAll('.category-tab').forEach(tab => {
-          tab.addEventListener('click', handleCategoryClick);
-        });
+        return card;
+      }
+
+      function renderNews() {
+        const filtered = filterNews(newsData.items || []);
+
+        resultCount.textContent = `${filtered.length} 条`;
+
+        if (filtered.length === 0) {
+          newsList.innerHTML = '<div class="empty-state">暂无数据</div>';
+        } else {
+          newsList.innerHTML = '';
+          filtered.forEach(item => {
+            newsList.appendChild(createNewsCard(item));
+          });
+        }
       }
 
       // Event Listeners
