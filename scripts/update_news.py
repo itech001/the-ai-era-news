@@ -2054,7 +2054,7 @@ def main() -> int:
     parser.add_argument("--window-hours", type=int, default=24, help="24h window size")
     parser.add_argument("--archive-days", type=int, default=45, help="Keep archive for N days")
     parser.add_argument("--translate-max-new", type=int, default=80, help="Max new EN->ZH title translations per run")
-    parser.add_argument("--rss-opml", default="", help="Optional OPML file path to include RSS sources")
+    parser.add_argument("--rss-opml", default="", action="append", help="Optional OPML file paths to include RSS sources (can be specified multiple times)")
     parser.add_argument("--rss-max-feeds", type=int, default=0, help="Optional max OPML RSS feeds to fetch (0 means all)")
     args = parser.parse_args()
 
@@ -2074,9 +2074,14 @@ def main() -> int:
     raw_items, statuses = collect_all(session, now)
     rss_feed_statuses: list[dict[str, Any]] = []
 
-    if args.rss_opml:
-        opml_path = Path(args.rss_opml).expanduser()
+    # Process all OPML files
+    opml_files = args.rss_opml if args.rss_opml else []
+    for opml_str in opml_files:
+        if not opml_str:
+            continue
+        opml_path = Path(opml_str).expanduser()
         if opml_path.exists():
+            print(f"Loading RSS from OPML: {opml_path}")
             rss_items, rss_summary_status, rss_feed_statuses = fetch_opml_rss(
                 now,
                 opml_path,
@@ -2085,6 +2090,7 @@ def main() -> int:
             raw_items.extend(rss_items)
             statuses.append(rss_summary_status)
         else:
+            print(f"Warning: OPML file not found: {opml_path}")
             statuses.append(
                 {
                     "site_id": "opmlrss",
