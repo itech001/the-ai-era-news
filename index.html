@@ -84,75 +84,6 @@
         font-weight: 600;
       }
 
-      /* Controls */
-      .controls {
-        background: var(--bg-white);
-        border-bottom: 1px solid var(--border);
-        padding: 0.5rem 1.5rem;
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-
-      .search-box {
-        flex: 1;
-        min-width: 200px;
-        position: relative;
-      }
-
-      .search-input {
-        width: 100%;
-        padding: 0.375rem 0.75rem 0.375rem 1.75rem;
-        border: 1px solid var(--border);
-        border-radius: 0.375rem;
-        font-size: 0.8125rem;
-        font-family: inherit;
-        transition: border-color 0.15s;
-        background: var(--bg-white);
-      }
-
-      .search-input:focus {
-        outline: none;
-        border-color: var(--primary);
-      }
-
-      .search-icon {
-        position: absolute;
-        left: 0.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 0.875rem;
-        height: 0.875rem;
-        color: var(--text-muted);
-      }
-
-      .select-wrapper {
-        position: relative;
-      }
-
-      .site-select {
-        padding: 0.375rem 1.25rem 0.375rem 0.625rem;
-        border: 1px solid var(--border);
-        border-radius: 0.375rem;
-        font-size: 0.8125rem;
-        font-family: inherit;
-        background: var(--bg-white);
-        cursor: pointer;
-        appearance: none;
-      }
-
-      .select-arrow {
-        position: absolute;
-        right: 0.375rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 0.75rem;
-        height: 0.75rem;
-        color: var(--text-muted);
-        pointer-events: none;
-      }
-
       /* Category Tabs */
       .category-tabs {
         background: var(--bg-white);
@@ -378,19 +309,6 @@
       </div>
     </header>
 
-    <nav class="controls">
-      <div class="search-box">
-        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input type="search" id="searchInput" class="search-input" placeholder="搜索标题、来源..." />
-      </div>
-    </nav>
-
-    <div class="category-tabs" id="categoryTabs">
-      <button class="category-tab active" data-category="all">全部</button>
-    </div>
-
     <div class="category-tabs" id="sourceTabs">
       <button class="category-tab active" data-source="all">全部来源</button>
     </div>
@@ -419,13 +337,8 @@
 
     <script>
       let newsData = null;
-      let currentCategory = 'all';
       let currentSource = 'all';
-      let searchQuery = '';
-      let selectedSite = '';
 
-      const searchInput = document.getElementById('searchInput');
-      const categoryTabs = document.getElementById('categoryTabs');
       const sourceTabs = document.getElementById('sourceTabs');
       const newsList = document.getElementById('newsList');
       const resultCount = document.getElementById('resultCount');
@@ -434,8 +347,7 @@
       const sourceCount = document.getElementById('sourceCount');
       const updateTime = document.getElementById('updateTime');
 
-      // Get unique sites and sources as categories
-      let siteCategories = [];
+      // Get unique sources as categories
       let sourceCategories = [];
 
       function updateStats() {
@@ -452,19 +364,11 @@
           minute: '2-digit'
         });
 
-        // Build category tabs from sites
-        buildCategoryTabs();
+        // Build source tabs
+        buildSourceTabs();
       }
 
-      function buildCategoryTabs() {
-        // Get sites with data
-        const sitesWithItems = newsData.site_stats.filter(s => s.count > 0);
-        siteCategories = sitesWithItems.map(s => ({
-          id: s.site_id,
-          name: s.site_name,
-          count: s.count
-        }));
-
+      function buildSourceTabs() {
         // Get unique sources with data
         const sourceMap = new Map();
         (newsData.items || []).forEach(item => {
@@ -476,21 +380,9 @@
         sourceCategories = Array.from(sourceMap.entries())
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 30); // Increase to top 30 sources
+          .slice(0, 30); // Top 30 sources
 
         console.log('Sources found:', sourceCategories.length, sourceCategories.slice(0, 5).map(s => s.name));
-
-        // Clear existing tabs
-        categoryTabs.innerHTML = '<button class="category-tab active" data-category="all">全部</button>';
-
-        // Add site tabs
-        siteCategories.forEach(site => {
-          const btn = document.createElement('button');
-          btn.className = 'category-tab';
-          btn.dataset.category = site.id;
-          btn.textContent = site.name;
-          categoryTabs.appendChild(btn);
-        });
 
         // Build source tabs
         sourceTabs.innerHTML = '<button class="category-tab active" data-source="all">全部来源</button>';
@@ -502,41 +394,13 @@
           sourceTabs.appendChild(btn);
         });
 
-        // Add event listeners for category tabs
-        categoryTabs.querySelectorAll('.category-tab').forEach(tab => {
-          tab.addEventListener('click', handleCategoryClick);
-        });
-
         // Add event listeners for source tabs
         sourceTabs.querySelectorAll('.category-tab').forEach(tab => {
           tab.addEventListener('click', handleSourceClick);
         });
       }
 
-      function handleCategoryClick(e) {
-        // Reset source filter
-        currentSource = 'all';
-        sourceTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-        sourceTabs.querySelector('[data-source="all"]').classList.add('active');
-
-        // Update category tabs
-        categoryTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        currentCategory = e.target.dataset.category;
-
-        // Find site name
-        const site = siteCategories.find(s => s.id === currentCategory);
-        sectionTitle.textContent = site ? site.name : '全部';
-
-        renderNews();
-      }
-
       function handleSourceClick(e) {
-        // Reset category filter
-        currentCategory = 'all';
-        categoryTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-        categoryTabs.querySelector('[data-category="all"]').classList.add('active');
-
         // Update source tabs
         sourceTabs.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
@@ -588,21 +452,8 @@
 
       function filterNews(items) {
         return items.filter(item => {
-          // Category filter (by site)
-          if (currentCategory !== 'all' && item.site_id !== currentCategory) return false;
-
           // Source filter
           if (currentSource !== 'all' && item.source !== currentSource) return false;
-
-          // Search filter
-          if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            const titleZh = (item.title_zh || item.title || '').toLowerCase();
-            const titleEn = (item.title_en || '').toLowerCase();
-            const source = (item.source || '').toLowerCase();
-            const siteName = (item.site_name || '').toLowerCase();
-            return titleZh.includes(query) || titleEn.includes(query) || source.includes(query) || siteName.includes(query);
-          }
 
           return true;
         });
@@ -653,12 +504,6 @@
           });
         }
       }
-
-      // Event Listeners
-      searchInput.addEventListener('input', (e) => {
-        searchQuery = e.target.value;
-        renderNews();
-      });
 
       // Init
       loadData();
